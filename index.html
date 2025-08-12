@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Rewards DApp - Live Contracts</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4rem 0;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .wallet-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            color: black;
+        }
+        .contract-badge {
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .transaction-status {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+            min-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shopping-cart me-2"></i>Shopping Rewards DApp (Live)
+            </a>
+            <div class="ms-auto">
+                <button id="connectWallet" class="btn btn-outline-light">
+                    <i class="fas fa-wallet me-2"></i>Connect Wallet
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container text-center">
+            <h1 class="display-4 mb-4">
+                <i class="fas fa-coins me-3"></i>Unified Shopping Rewards
+            </h1>
+            <p class="lead mb-4">Real blockchain interactions on Sepolia testnet</p>
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="wallet-info" id="walletInfo" style="display: none;">
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <h5><i class="fas fa-wallet text-primary"></i> Wallet</h5>
+                                <small id="walletAddress" class="contract-badge">Not connected</small>
+                            </div>
+                            <div class="col-md-4">
+                                <h5><i class="fas fa-coins text-success"></i> SHOP Balance</h5>
+                                <span id="shopBalance" class="fs-4">Loading...</span>
+                            </div>
+                            <div class="col-md-4">
+                                <h5><i class="fas fa-ethereum text-info"></i> ETH Balance</h5>
+                                <span id="ethBalance" class="fs-4">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        
+        <!-- Staking Dashboard -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4><i class="fas fa-lock me-2"></i>Real Staking Dashboard</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Stake SHOP Tokens</h6>
+                                <div class="input-group mb-3">
+                                    <input type="number" id="stakeAmount" class="form-control" placeholder="Amount to stake">
+                                    <span class="input-group-text">SHOP</span>
+                                </div>
+                                <button onclick="stakeTokens()" class="btn btn-success" id="stakeBtn">
+                                    <i class="fas fa-lock"></i> Stake (Real Transaction)
+                                </button>
+                                <small class="text-muted d-block mt-2">
+                                    Tier 1: 1,000+ SHOP (1.1x) | Tier 2: 5,000+ SHOP (1.5x) | Tier 3: 20,000+ SHOP (2.0x)
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Current Stake Info (From Blockchain)</h6>
+                                <p>Staked: <span id="stakedAmount">Loading...</span></p>
+                                <p>Tier: <span id="stakingTier">Loading...</span></p>
+                                <p>Multiplier: <span id="stakingMultiplier">Loading...</span></p>
+                                <p>Pending Rewards: <span id="pendingRewards">Loading...</span></p>
+                                <button onclick="unstakeTokens()" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-unlock"></i> Unstake
+                                </button>
+                                <button onclick="claimRewards()" class="btn btn-info btn-sm">
+                                    <i class="fas fa-gift"></i> Claim Rewards
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real Purchase Processing -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h4><i class="fas fa-store me-2"></i>Real Purchase Processing</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <strong>Note:</strong> These are real blockchain transactions that will cost gas fees and require merchant authorization.
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6>Process Purchase (As Merchant)</h6>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <label>Customer Address:</label>
+                                        <input type="text" id="customerAddress" class="form-control" placeholder="0x...">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Purchase Amount (€):</label>
+                                        <input type="number" id="purchaseAmount" class="form-control" placeholder="50">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>Transaction ID:</label>
+                                        <input type="text" id="transactionId" class="form-control" placeholder="TX123">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label>&nbsp;</label>
+                                        <button onclick="processPurchase()" class="btn btn-success form-control">
+                                            <i class="fas fa-receipt"></i> Process Purchase
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    Note: Your wallet must be authorized as a merchant to process purchases.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Overview -->
+        <div class="row mb-5">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h4><i class="fas fa-chart-line me-2"></i>Account Overview</h4>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>SHOP Balance:</strong> <span id="shopBalanceDetail">Loading...</span></p>
+                        <p><strong>Total Supply:</strong> <span id="totalSupply">Loading...</span></p>
+                        <p><strong>Your % of Supply:</strong> <span id="supplyPercentage">Loading...</span></p>
+                        <button onclick="refreshBalances()" class="btn btn-outline-info">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h4><i class="fas fa-tools me-2"></i>Admin Functions</h4>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Authorize Merchant:</strong></p>
+                        <div class="input-group mb-2">
+                            <input type="text" id="merchantAddress" class="form-control" placeholder="Merchant address">
+                            <button onclick="authorizeMerchant()" class="btn btn-warning">Authorize</button>
+                        </div>
+                        <small class="text-muted">Only contract owner can authorize merchants</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contract Addresses -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h4>Live Contract Addresses (Sepolia)</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="contract-badge">
+                                    <strong>SHOP Token:</strong><br>
+                                    <a href="https://sepolia.etherscan.io/address/0xaf4aB0E77A61C6Fa6d8455eb6064F24D05f03c26" target="_blank">
+                                        0xaf4aB0E77A61C6Fa6d8455eb6064F24D05f03c26
+                                    </a>
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="contract-badge">
+                                    <strong>SHOP Staking:</strong><br>
+                                    <a href="https://sepolia.etherscan.io/address/0x49D43dA2A15907344EE33eC5A5816610E8DF2af1" target="_blank">
+                                        0x49D43dA2A15907344EE33eC5A5816610E8DF2af1
+                                    </a>
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="contract-badge">
+                                    <strong>Purchase Validator:</strong><br>
+                                    <a href="https://sepolia.etherscan.io/address/0x393749C45Bd23b5d391e88deE11Adb2Fc977427B" target="_blank">
+                                        0x393749C45Bd23b5d391e88deE11Adb2Fc977427B
+                                    </a>
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="contract-badge">
+                                    <strong>Merchant Registry:</strong><br>
+                                    <a href="https://sepolia.etherscan.io/address/0xD3433a090284D458CA42B8Cc2CF24119943364f5" target="_blank">
+                                        0xD3433a090284D458CA42B8Cc2CF24119943364f5
+                                    </a>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load ethers.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    
+    <script>
+        // Contract addresses
+        const contracts = {
+            shopToken: "0xaf4aB0E77A61C6Fa6d8455eb6064F24D05f03c26",
+            merchantRegistry: "0xD3433a090284D458CA42B8Cc2CF24119943364f5",
+            purchaseValidator: "0x393749C45Bd23b5d391e88deE11Adb2Fc977427B",
+            shopStaking: "0x49D43dA2A15907344EE33eC5A5816610E8DF2af1",
+            stablecoinSwap: "0x5bD93864332a7447670611a11138cCFC253EB483"
+        };
+
+        // Complete contract ABIs
+        const shopTokenABI = [
+            "function balanceOf(address owner) view returns (uint256)",
+            "function totalSupply() view returns (uint256)",
+            "function transfer(address to, uint256 amount) returns (bool)",
+            "function approve(address spender, uint256 amount) returns (bool)",
+            "function allowance(address owner, address spender) view returns (uint256)",
+            "function authorizeMinter(address minter, string memory name)",
+            "function mintRewards(address customer, uint256 amount, uint256 purchaseValue)"
+        ];
+
+        const stakingABI = [
+            "function getUserStakeInfo(address user) view returns (uint256 stakedAmount, uint256 stakingTier, uint256 multiplier, uint256 pendingRewards, bool canUnstake)",
+            "function stake(uint256 amount)",
+            "function unstake(uint256 amount)",
+            "function claimStakingRewards()",
+            "function shopToken() view returns (address)"
+        ];
+
+        const purchaseValidatorABI = [
+            "function processPurchase(address customer, uint256 amount, string memory transactionId)",
+            "function getCustomerStats(address customer) view returns (uint256 totalSpent, uint256 totalRewards, uint256 shopBalance)"
+        ];
+
+        // Global variables
+        let web3, userAccount, shopTokenContract, stakingContract, purchaseValidatorContract;
+
+        // Wait for page to load
+        window.addEventListener('load', function() {
+            console.log('Ethers available:', typeof ethers !== 'undefined');
+            document.getElementById('connectWallet').addEventListener('click', connectWallet);
+        });
+
+        // Connect wallet function
+        async function connectWallet() {
+            if (typeof ethers === 'undefined') {
+                showAlert('Ethers.js not loaded. Please refresh the page.', 'danger');
+                return;
+            }
+
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    showAlert('Connecting wallet...', 'info');
+                    
+                    // Request account access
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    userAccount = accounts[0];
+                    
+                    // Initialize web3
+                    web3 = new ethers.providers.Web3Provider(window.ethereum);
+                    const signer = web3.getSigner();
+                    
+                    // Check network
+                    const network = await web3.getNetwork();
+                    if (network.chainId !== 11155111) {
+                        showAlert('Please switch to Sepolia testnet', 'warning');
+                        return;
+                    }
+                    
+                    // Initialize contracts
+                    shopTokenContract = new ethers.Contract(contracts.shopToken, shopTokenABI, signer);
+                    stakingContract = new ethers.Contract(contracts.shopStaking, stakingABI, signer);
+                    purchaseValidatorContract = new ethers.Contract(contracts.purchaseValidator, purchaseValidatorABI, signer);
+                    
+                    // Update UI
+                    document.getElementById('connectWallet').innerHTML = '<i class="fas fa-check me-2"></i>Connected';
+                    document.getElementById('connectWallet').disabled = true;
+                    document.getElementById('walletInfo').style.display = 'block';
+                    document.getElementById('walletAddress').textContent = userAccount.substring(0, 6) + '...' + userAccount.substring(38);
+                    
+                    // Set customer address to current wallet for convenience
+                    document.getElementById('customerAddress').value = userAccount;
+                    
+                    // Load all data
+                    await refreshBalances();
+                    await loadStakingInfo();
+                    
+                    showAlert('Wallet connected successfully! 🎉', 'success');
+                } catch (error) {
+                    console.error('Connection error:', error);
+                    showAlert('Failed to connect: ' + error.message, 'danger');
+                }
+            } else {
+                showAlert('Please install MetaMask', 'warning');
+            }
+        }
+
+        // Refresh balances from blockchain
+        async function refreshBalances() {
+            if (!shopTokenContract || !userAccount) return;
+            
+            try {
+                // SHOP balance
+                const shopBalance = await shopTokenContract.balanceOf(userAccount);
+                const shopBalanceFormatted = ethers.utils.formatEther(shopBalance);
+                document.getElementById('shopBalance').textContent = parseFloat(shopBalanceFormatted).toFixed(0) + ' SHOP';
+                document.getElementById('shopBalanceDetail').textContent = parseFloat(shopBalanceFormatted).toFixed(2) + ' SHOP';
+                
+                // ETH balance
+                const ethBalance = await web3.getBalance(userAccount);
+                document.getElementById('ethBalance').textContent = parseFloat(ethers.utils.formatEther(ethBalance)).toFixed(4) + ' ETH';
+                
+                // Total supply
+                const totalSupply = await shopTokenContract.totalSupply();
+                const totalSupplyFormatted = ethers.utils.formatEther(totalSupply);
+                document.getElementById('totalSupply').textContent = parseFloat(totalSupplyFormatted).toFixed(0) + ' SHOP';
+                
+                // Calculate percentage
+                const percentage = (parseFloat(shopBalanceFormatted) / parseFloat(totalSupplyFormatted)) * 100;
+                document.getElementById('supplyPercentage').textContent = percentage.toFixed(2) + '%';
+                
+            } catch (error) {
+                console.error('Error loading balances:', error);
+                showAlert('Error loading balances: ' + error.message, 'danger');
+            }
+        }
+
+        // Load staking info from blockchain
+        async function loadStakingInfo() {
+            if (!stakingContract || !userAccount) return;
+            
+            try {
+                const stakeInfo = await stakingContract.getUserStakeInfo(userAccount);
+                
+                document.getElementById('stakedAmount').textContent = ethers.utils.formatEther(stakeInfo.stakedAmount) + ' SHOP';
+                document.getElementById('pendingRewards').textContent = ethers.utils.formatEther(stakeInfo.pendingRewards) + ' SHOP';
+                
+                const tier = stakeInfo.stakingTier.toNumber();
+                const multiplier = stakeInfo.multiplier.toNumber();
+                
+                let tierText = 'None';
+                if (tier === 1) tierText = 'Tier 1';
+                else if (tier === 2) tierText = 'Tier 2';
+                else if (tier === 3) tierText = 'Tier 3';
+                
+                document.getElementById('stakingTier').textContent = tierText;
+                document.getElementById('stakingMultiplier').textContent = (multiplier / 100).toFixed(1) + 'x';
+                
+            } catch (error) {
+                console.error('Error loading staking info:', error);
+                document.getElementById('stakedAmount').textContent = '0 SHOP';
+                document.getElementById('stakingTier').textContent = 'None';
+                document.getElementById('stakingMultiplier').textContent = '1.0x';
+                document.getElementById('pendingRewards').textContent = '0 SHOP';
+            }
+        }
+
+        // Real staking function
+        async function stakeTokens() {
+            const amount = document.getElementById('stakeAmount').value;
+            if (!amount || amount <= 0) {
+                showAlert('Please enter a valid stake amount', 'warning');
+                return;
+            }
+
+            if (!stakingContract) {
+                showAlert('Please connect wallet first', 'warning');
+                return;
+            }
+
+            try {
+                const stakeAmount = ethers.utils.parseEther(amount);
+                
+                document.getElementById('stakeBtn').classList.add('loading');
+                showAlert('Step 1/2: Approving tokens...', 'info');
+                
+                // First approve the staking contract
+                const approveTx = await shopTokenContract.approve(contracts.shopStaking, stakeAmount);
+                await approveTx.wait();
+                
+                showAlert('Step 2/2: Staking tokens...', 'info');
+                
+                // Then stake
+                const stakeTx = await stakingContract.stake(stakeAmount);
+                const receipt = await stakeTx.wait();
+                
+                showAlert(`✅ Successfully staked ${amount} SHOP tokens! TX: ${receipt.transactionHash}`, 'success');
+                
+                // Refresh data
+                await refreshBalances();
+                await loadStakingInfo();
+                
+                document.getElementById('stakeAmount').value = '';
+                
+            } catch (error) {
+                console.error('Staking error:', error);
+                showAlert('Staking failed: ' + error.message, 'danger');
+            } finally {
+                document.getElementById('stakeBtn').classList.remove('loading');
+            }
+        }
+
+        // Real unstaking function
+        async function unstakeTokens() {
+            const amount = prompt('Enter amount to unstake:');
+            if (!amount || amount <= 0) return;
+
+            try {
+                showAlert('Unstaking tokens...', 'info');
+                const unstakeAmount = ethers.utils.parseEther(amount);
+                const tx = await stakingContract.unstake(unstakeAmount);
+                const receipt = await tx.wait();
+                
+                showAlert(`✅ Successfully unstaked ${amount} SHOP tokens! TX: ${receipt.transactionHash}`, 'success');
+                
+                await refreshBalances();
+                await loadStakingInfo();
+                
+            } catch (error) {
+                console.error('Unstaking error:', error);
+                showAlert('Unstaking failed: ' + error.message, 'danger');
+            }
+        }
+
+        // Claim staking rewards
+        async function claimRewards() {
+            try {
+                showAlert('Claiming staking rewards...', 'info');
+                const tx = await stakingContract.claimStakingRewards();
+                const receipt = await tx.wait();
+                
+                showAlert(`✅ Successfully claimed staking rewards! TX: ${receipt.transactionHash}`, 'success');
+                
+                await refreshBalances();
+                await loadStakingInfo();
+                
+            } catch (error) {
+                console.error('Claim error:', error);
+                showAlert('Claiming rewards failed: ' + error.message, 'danger');
+            }
+        }
+
+        // Process real purchase
+        async function processPurchase() {
+            const customer = document.getElementById('customerAddress').value;
+            const amount = document.getElementById('purchaseAmount').value;
+            const txId = document.getElementById('transactionId').value;
+            
+            if (!customer || !amount || !txId) {
+                showAlert('Please fill all fields', 'warning');
+                return;
+            }
+
+            try {
+                showAlert('Processing purchase...', 'info');
+                
+                // Convert euros to wei (100 cents per euro, represented as wei)
+                const amountInWei = ethers.utils.parseEther((amount * 100).toString());
+                
+                const tx = await purchaseValidatorContract.processPurchase(customer, amountInWei, txId);
+                const receipt = await tx.wait();
+                
+                showAlert(`✅ Purchase processed! Customer earned rewards. TX: ${receipt.transactionHash}`, 'success');
+                
+                // Clear form
+                document.getElementById('purchaseAmount').value = '';
+                document.getElementById('transactionId').value = '';
+                
+                // Refresh balances
+                await refreshBalances();
+                
+            } catch (error) {
+                console.error('Purchase processing error:', error);
+                showAlert('Purchase processing failed: ' + error.message, 'danger');
+            }
+        }
+
+        // Authorize merchant (owner only)
+        async function authorizeMerchant() {
+            const merchantAddr = document.getElementById('merchantAddress').value;
+            if (!merchantAddr) {
+                showAlert('Please enter merchant address', 'warning');
+                return;
+            }
+
+            try {
+                showAlert('Authorizing merchant...', 'info');
+                const tx = await shopTokenContract.authorizeMinter(merchantAddr, "Frontend Merchant");
+                const receipt = await tx.wait();
+                
+                showAlert(`✅ Merchant authorized! TX: ${receipt.transactionHash}`, 'success');
+                document.getElementById('merchantAddress').value = '';
+                
+            } catch (error) {
+                console.error('Authorization error:', error);
+                showAlert('Authorization failed: ' + error.message, 'danger');
+            }
+        }
+
+        // Show alert function
+        function showAlert(message, type) {
+            // Remove existing alerts
+            const existingAlerts = document.querySelectorAll('.transaction-status');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show transaction-status`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
