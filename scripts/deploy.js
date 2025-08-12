@@ -1,23 +1,56 @@
-// scripts/deploy.js - Simple working deployment script
+// scripts/deploy.js - GitHub Actions + Sepolia deployment
 
 async function main() {
     console.log("🛍️ Starting Shopping Rewards DApp Deployment...");
     
-    // Get signers
-    const signers = await ethers.getSigners();
-    const deployer = signers[0];
+    // Debug environment variables (without exposing sensitive data)
+    console.log("🔍 Environment check:");
+    console.log("- INFURA_API_KEY exists:", !!process.env.INFURA_API_KEY);
+    console.log("- SEPOLIA_INFURA_API_KEY exists:", !!process.env.SEPOLIA_INFURA_API_KEY);
+    console.log("- PRIVATE_KEY exists:", !!process.env.PRIVATE_KEY);
+    console.log("- SEPOLIA_PRIVATE_KEY exists:", !!process.env.SEPOLIA_PRIVATE_KEY);
     
-    if (!deployer) {
+    // Get network info
+    const network = await ethers.provider.getNetwork();
+    console.log("📡 Network:", network.name, "Chain ID:", network.chainId);
+    
+    // Get signers with better error handling
+    let signers;
+    try {
+        signers = await ethers.getSigners();
+        console.log("👤 Available signers:", signers.length);
+    } catch (error) {
+        console.error("❌ Failed to get signers:", error.message);
+        throw new Error("Cannot get signers. Check your private key configuration.");
+    }
+    
+    if (!signers || signers.length === 0) {
+        console.error("❌ No signers available!");
+        console.log("💡 Make sure your environment variables are set:");
+        console.log("   - INFURA_API_KEY or SEPOLIA_INFURA_API_KEY");
+        console.log("   - PRIVATE_KEY or SEPOLIA_PRIVATE_KEY");
         throw new Error("No deployer account found");
     }
     
-    console.log("Deploying contracts with account:", deployer.address);
-    console.log("Account balance:", ethers.utils.formatEther(await deployer.getBalance()), "ETH");
+    const deployer = signers[0];
+    console.log("🚀 Deploying with account:", deployer.address);
+    
+    // Check balance
+    const balance = await deployer.getBalance();
+    console.log("💰 Account balance:", ethers.utils.formatEther(balance), "ETH");
+    
+    if (balance.eq(0)) {
+        console.error("❌ Deployer account has 0 ETH!");
+        console.log("💡 Get Sepolia ETH from: https://sepoliafaucet.com/");
+        throw new Error("Insufficient balance for deployment");
+    }
 
     // Step 1: Deploy SHOP Token
     console.log("\n📄 Step 1: Deploying SHOP Token...");
     const SHOPToken = await ethers.getContractFactory("SHOPToken");
+    console.log("   Deploying contract...");
     const shopToken = await SHOPToken.deploy();
+    console.log("   Waiting for deployment...");
     await shopToken.deployed();
     console.log("✅ SHOP Token deployed to:", shopToken.address);
 
@@ -42,23 +75,30 @@ async function main() {
     await shopStaking.deployed();
     console.log("✅ SHOP Staking deployed to:", shopStaking.address);
 
-    // Step 5: Deploy Stablecoin Swap (using deployer as mock USDC)
+    // Step 5: Deploy Stablecoin Swap
     console.log("\n💱 Step 5: Deploying Stablecoin Swap...");
+    // Use a known Sepolia USDC address or deployer as mock
+    const mockUSDC = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"; // Sepolia USDC
     const StablecoinSwap = await ethers.getContractFactory("StablecoinSwap");
-    const stablecoinSwap = await StablecoinSwap.deploy(shopToken.address, deployer.address);
+    const stablecoinSwap = await StablecoinSwap.deploy(shopToken.address, mockUSDC);
     await stablecoinSwap.deployed();
     console.log("✅ Stablecoin Swap deployed to:", stablecoinSwap.address);
 
     // Step 6: Setup permissions
     console.log("\n⚙️ Step 6: Setting up permissions...");
+    
+    console.log("   Authorizing staking contract...");
     await shopToken.authorizeMinter(shopStaking.address, "SHOP Staking Contract");
     console.log("✅ Added staking contract as minter");
     
+    console.log("   Authorizing purchase validator...");
     await shopToken.authorizeMinter(purchaseValidator.address, "Purchase Validator");
     console.log("✅ Added purchase validator as minter");
 
-    // Step 7: Register sample merchant
-    console.log("\n🏪 Step 7: Registering sample merchant...");
+    // Step 7: Register sample merchants
+    console.log("\n🏪 Step 7: Registering sample merchants...");
+    
+    console.log("   Registering Tesco Ireland...");
     await merchantRegistry.registerMerchant(
         deployer.address, 
         "Tesco Ireland",
@@ -67,11 +107,11 @@ async function main() {
     );
     console.log("✅ Registered Tesco Ireland (2% rewards)");
 
-    // Step 8: Authorize merchant for minting
+    console.log("   Authorizing Tesco for minting...");
     await shopToken.authorizeMinter(deployer.address, "Tesco Ireland");
     console.log("✅ Authorized Tesco for minting rewards");
 
-    // Step 9: Display deployment summary
+    // Step 8: Deployment Summary
     console.log("\n🎉 Deployment Complete!");
     console.log("==========================================");
     console.log("📄 SHOP Token:", shopToken.address);
@@ -81,42 +121,56 @@ async function main() {
     console.log("💱 Stablecoin Swap:", stablecoinSwap.address);
     console.log("==========================================");
 
+    // Step 9: Save deployment info
+    const deploymentInfo = {
+        network: network.name,
+        chainId: network.chainId,
+        deployer: deployer.address,
+        timestamp: new Date().toISOString(),
+        contracts: {
+            shopToken: shopToken.address,
+            merchantRegistry: merchantRegistry.address,
+            purchaseValidator: purchaseValidator.address,
+            shopStaking: shopStaking.address,
+            stablecoinSwap: stablecoinSwap.address
+        },
+        verificationCommands: {
+            shopToken: `npx hardhat verify --network sepolia ${shopToken.address}`,
+            merchantRegistry: `npx hardhat verify --network sepolia ${merchantRegistry.address} ${shopToken.address}`,
+            purchaseValidator: `npx hardhat verify --network sepolia ${purchaseValidator.address} ${shopToken.address} ${merchantRegistry.address}`,
+            shopStaking: `npx hardhat verify --network sepolia ${shopStaking.address} ${shopToken.address}`,
+            stablecoinSwap: `npx hardhat verify --network sepolia ${stablecoinSwap.address} ${shopToken.address} ${mockUSDC}`
+        }
+    };
+
+    console.log("\n📋 Deployment Information:");
+    console.log(JSON.stringify(deploymentInfo, null, 2));
+
     // Step 10: Quick verification
     console.log("\n🔍 Verifying deployment...");
     const totalSupply = await shopToken.totalSupply();
     const merchantCount = await merchantRegistry.getMerchantCount();
+    const stakingTokenAddress = await shopStaking.shopToken();
     
-    console.log("SHOP Total Supply:", ethers.utils.formatEther(totalSupply), "SHOP");
-    console.log("Registered Merchants:", merchantCount.toString());
-
-    // Step 11: Demo transaction
-    console.log("\n🧪 Demo transaction...");
-    try {
-        const purchaseAmount = ethers.utils.parseEther("5000"); // €50 purchase
-        await purchaseValidator.processPurchase(
-            deployer.address, // Customer
-            purchaseAmount,
-            "DEMO_TX_001"
-        );
-        
-        const customerBalance = await shopToken.balanceOf(deployer.address);
-        console.log("✅ Demo purchase successful!");
-        console.log("   Customer earned:", ethers.utils.formatEther(customerBalance.sub(totalSupply)), "SHOP tokens");
-        
-    } catch (error) {
-        console.log("⚠️ Demo transaction skipped:", error.message);
-    }
+    console.log("✅ SHOP Total Supply:", ethers.utils.formatEther(totalSupply), "SHOP");
+    console.log("✅ Registered Merchants:", merchantCount.toString());
+    console.log("✅ Staking Contract Connected:", stakingTokenAddress === shopToken.address);
 
     console.log("\n🎯 Assignment Ready!");
-    console.log("✅ All contracts deployed successfully");
-    console.log("✅ Permissions configured");  
-    console.log("✅ Sample merchant registered");
-    console.log("\nYour Shopping Rewards DApp is ready! 🚀");
+    console.log("✅ All contracts deployed to Sepolia testnet");
+    console.log("✅ Permissions configured correctly");  
+    console.log("✅ Sample merchant registered and authorized");
+    console.log("✅ System ready for testing and submission");
+    console.log("\n🌐 View on Sepolia Etherscan:");
+    console.log(`   SHOP Token: https://sepolia.etherscan.io/address/${shopToken.address}`);
+    console.log(`   Merchant Registry: https://sepolia.etherscan.io/address/${merchantRegistry.address}`);
+    console.log("\n🚀 Your Shopping Rewards DApp is live on Sepolia!");
 }
 
 main()
     .then(() => process.exit(0))
     .catch((error) => {
         console.error("❌ Deployment failed:", error);
+        console.error("Stack trace:", error.stack);
         process.exit(1);
     });
